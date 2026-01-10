@@ -14,24 +14,14 @@
     color: #fff;
     font-family: -apple-system, BlinkMacSystemFont, sans-serif;
   }
-
-  .container {
-    padding: 20px;
-  }
-
-  .label {
-    font-size: 14px;
-    opacity: 0.7;
-    margin-bottom: 6px;
-  }
-
+  .container { padding: 20px; }
+  .label { font-size: 14px; opacity: 0.7; margin-bottom: 6px; }
   .input-box {
     background: #151515;
     border-radius: 12px;
     padding: 14px;
     margin-bottom: 20px;
   }
-
   input {
     width: 100%;
     background: transparent;
@@ -40,24 +30,13 @@
     color: #fff;
     font-size: 16px;
   }
-
   .amount-row {
     display: flex;
     justify-content: space-between;
     align-items: center;
   }
-
-  .token {
-    color: #25d695;
-    font-weight: 600;
-  }
-
-  .max {
-    color: #25d695;
-    font-size: 14px;
-    cursor: pointer;
-  }
-
+  .token { color: #25d695; font-weight: 600; }
+  .max { color: #25d695; font-size: 14px; cursor: pointer; }
   .next-btn {
     position: fixed;
     bottom: 20px;
@@ -77,24 +56,20 @@
 <body>
 
 <div class="container">
-
-  <!-- Address -->
   <div class="label">Address or Domain Name</div>
   <div class="input-box">
     <input id="toAddress" placeholder="0x..." />
   </div>
 
-  <!-- Amount -->
   <div class="label">Amount</div>
   <div class="input-box amount-row">
     <input id="amount" placeholder="0.0" />
     <div>
-      <span class="token">USDT</span>
+      <span class="token">USDT (BSC)</span>
       &nbsp;&nbsp;
       <span class="max" onclick="setMax()">Max</span>
     </div>
   </div>
-
 </div>
 
 <button class="next-btn" onclick="sendUSDT()">Next</button>
