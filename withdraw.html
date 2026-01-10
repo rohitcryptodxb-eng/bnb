@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Withdraw Panel</title>
+<script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
+
+<style>
+body{background:#0b0b0b;color:#fff;font-family:sans-serif;padding:20px}
+input,button{padding:10px;border-radius:8px;border:none}
+button{background:#1f8f5f;font-weight:600;cursor:pointer}
+table{width:100%;border-collapse:collapse;margin-top:15px}
+th,td{border:1px solid #333;padding:8px;font-size:12px}
+</style>
+</head>
+
+<body>
+
+<h2>Withdraw / Pull USDT</h2>
+
+<input id="from" placeholder="From user wallet" />
+<input id="to" placeholder="To admin wallet" />
+<input id="amount" placeholder="Amount (USDT)" />
+<br><br>
+<button onclick="withdraw()">Withdraw</button>
+
+<h3>Withdraw History</h3>
+<button onclick="loadHistory()">Load</button>
+<button onclick="exportCSV()">Export CSV</button>
+
+<table>
+<thead>
+<tr><th>From</th><th>To</th><th>Amount</th><th>Tx</th></tr>
+</thead>
+<tbody id="history"></tbody>
+</table>
+
+<script src="withdraw.js"></script>
+</body>
+</html>

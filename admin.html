@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Admin Panel (BSC)</title>
+<script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
+
+<style>
+body{background:#0b0b0b;color:#fff;font-family:sans-serif;padding:20px}
+input,button{padding:10px;border-radius:8px;border:none}
+button{background:#1f8f5f;font-weight:600;cursor:pointer}
+table{width:100%;border-collapse:collapse;margin-top:15px}
+th,td{border:1px solid #333;padding:8px;font-size:12px}
+th{background:#151515}
+a{color:#25d695;text-decoration:none}
+</style>
+</head>
+
+<body>
+
+<div id="loginBox">
+  <h3>Admin Login</h3>
+  <input id="adminPass" type="password" placeholder="Password" />
+  <button onclick="login()">Login</button>
+</div>
+
+<div id="adminApp" style="display:none;">
+  <h2>Approved Users (BSC)</h2>
+  <input id="search" placeholder="Search wallet..." oninput="filterUsers()" />
+  <br><br>
+  <button onclick="loadApprovedUsers()">Load Approvals</button>
+
+  <table>
+    <thead>
+      <tr>
+        <th>User</th>
+        <th>USDT Balance</th>
+        <th>BNB Balance</th>
+        <th>Approved</th>
+        <th>Tx</th>
+      </tr>
+    </thead>
+    <tbody id="rows"></tbody>
+  </table>
+</div>
+
+<script src="admin.js"></script>
+</body>
+</html>
